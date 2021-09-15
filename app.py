@@ -64,6 +64,7 @@ for key in config:
     list_films = html_response.find("div", {"class": "column1"}).find_all(
         "div", id="hann"
     )
+    print("--------", key.upper(), "--------")
     # Si plusieurs films sont trouvés, on demande à l'utilisateur de choisir
     if len(list_films) > 1:
         print("Plusieurs films trouvés")

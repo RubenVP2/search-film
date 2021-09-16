@@ -1,11 +1,17 @@
 import requests
-import json
+import re
+import os
 from bs4 import BeautifulSoup
 
 # Variables utilisées dans le programme
 cfg_file = "liste.cfg"
-result = {}
+result_from_search = {}
+final_result = {}
 film_input = ""
+
+# Lambda pour nettoie la console
+clearConsole = lambda: os.system("cls" if os.name in ("nt", "dos") else "clear")
+
 
 # Demander à l'utilisateur de saisir le nom du film à rechercher, tant qu'il n'a pas saisi un nom valide (pas de chiffres, pas de caractères spéciaux, etc.)
 while True:
@@ -51,17 +57,20 @@ def get_data(method, url, payload=None):
 
 # Boucle sur chaque site présent dans le fichier liste.cfg
 for key in config:
-    html_response = ""
+    # Vide le dictionnaire de résultat
+    result_from_search.clear()
+    html_response_film_searched = ""
+    config_array = config[key].split(",")
     # Récupération de la méthode HTTP et de l'URL
-    method, url = config[key].split(",")[0], config[key].split(",")[1]
+    method, url = config_array[0], config_array[1]
     # Récupération du payload si besoin
     if method == "POST":
-        payload = {config[key].split(",")[2]: film_input}
-        html_response = get_data(method, url, payload)
+        payload = {config_array[2]: film_input}
+        html_response_film_searched = get_data(method, url, payload)
     else:
-        html_response = get_data(method, url)
+        html_response_film_searched = get_data(method, url)
     # On récupère les div contenant les informations du film
-    list_films = html_response.find("div", {"class": "column1"}).find_all(
+    list_films = html_response_film_searched.find("div", {"class": "column1"}).find_all(
         "div", id="hann"
     )
     print("--------", key.upper(), "--------")
@@ -70,7 +79,7 @@ for key in config:
         print("Plusieurs films trouvés")
         # Boucle sur les films trouvés pour que l'utilisateur choisisse
         for index, div in enumerate(list_films, start=1):
-            result[div.a.text.strip()] = div.a.get("href")
+            result_from_search[div.a.text.strip()] = div.a.get("href")
             print(index, " - ", div.a.text.strip())
         film_choice = ""
         while True:
@@ -96,5 +105,26 @@ for key in config:
             print("Aucun film trouvé")
         else:
             print("Un seul film trouvé")
-            result[list_films[0].a.text.strip()] = list_films[0].a.get("href")
             print(list_films[0].a.text.strip())
+            film_choice = list_films[0].a.get("href")
+    # Si le lien ne possède pas l'url de base, on l'ajoute
+    if config_array[3] != "":
+        html_response_film_selected = get_data("GET", config_array[3] + film_choice)
+    else:
+        html_response_film_selected = get_data("GET", film_choice)
+    html_response_iframe = ""
+    # S'il y a une utilisation d'iframe, on doit récupérer le contenu de l'iframe
+    if html_response_film_selected.find("iframe"):
+        html_response_iframe = get_data(
+            "GET", html_response_film_selected.find("iframe").get("src")
+        )
+    # S'il faut réaliser un click pour afficher le film, on le fait
+    if config_array[4] != "":
+        on_click = html_response_iframe.find("body").get("onclick")
+        final_result[key] = re.findall(r"\'.*\'", on_click)[0]
+
+clearConsole()
+print("-------- RESULTATS --------")
+# Affichage des liens de tous les films trouvés
+for key in final_result:
+    print(key.upper(), ":", final_result[key])

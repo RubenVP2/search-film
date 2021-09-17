@@ -1,4 +1,5 @@
 import requests
+import argparse
 import re
 import os
 from bs4 import BeautifulSoup
@@ -174,5 +175,14 @@ def get_movie_url(config: dict, film_input: str):
             ].get("src")
 
 
-if __name__ == "__main__":
+# Récupération des paramètres
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--film", help="Le film à rechercher")
+args = parser.parse_args()
+if args.film is None:
     affichage_initial()
+else:
+    config = read_cfg_file(cfg_file)
+    get_movie_url(config=config, film_input=args.film)
+    affichage_final()
+    exit()

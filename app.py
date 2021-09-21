@@ -14,7 +14,7 @@ film_input = ""
 clearConsole = lambda: os.system("cls" if os.name in ("nt", "dos") else "clear")
 
 
-def affichage_initial():
+def affichage_initial(need_save=None):
     """
     Demande à l'utilisateur de saisir le nom du film à rechercher,
     tant qu'il n'a pas saisi un nom valide (pas de chiffres, pas de caractères spéciaux, etc.)
@@ -28,7 +28,11 @@ def affichage_initial():
             config = read_cfg_file(cfg_file)
             get_movie_url(config=config, film_input=film_input)
             break
-    affichage_final()
+    if need_save is not None:
+        save_result(file_name="results.txt", film=film_input)
+        affichage_final()
+    else:
+        affichage_final()
 
 
 def affichage_final():
@@ -175,14 +179,37 @@ def get_movie_url(config: dict, film_input: str):
             ].get("src")
 
 
-# Récupération des paramètres
+def save_result(file_name: str, film: str):
+    """
+    Sauvegarde le résultat dans un fichier
+    """
+    with open(file_name, "a") as f:
+        f.write("----------- " + film + " -----------\n")
+        for key in final_result:
+            f.write(key.upper() + " > ")
+            f.write(final_result[key] + "\n")
+        f.close()
+
+
+# Début du script principal --------------------------------------------------- #
+# Récupération des paramètres CLI
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--film", help="Le film à rechercher")
+parser.add_argument(
+    "-s", "--save", action="store_true", help="Sauvegarde le résultat dans un fichier"
+)
 args = parser.parse_args()
+# Si aucun paramètre n'est passé, on lance l'application en mode interactif
 if args.film is None:
-    affichage_initial()
+    if args.save is None:
+        affichage_initial()
+    else:
+        affichage_initial(need_save=True)
 else:
+    # On lance le script en fonction du paramètre passé
     config = read_cfg_file(cfg_file)
     get_movie_url(config=config, film_input=args.film)
-    affichage_final()
+    if args.save is not None:
+        save_result(file_name="results.txt", film=args.film)
+        affichage_final()
     exit()

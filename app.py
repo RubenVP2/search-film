@@ -1,3 +1,4 @@
+from Models import Site
 import requests
 import argparse
 import re
@@ -12,6 +13,21 @@ film_input = ""
 
 # Lambda pour nettoie la console
 clearConsole = lambda: os.system("cls" if os.name in ("nt", "dos") else "clear")
+
+
+def get_argument():
+    """
+    Récupère les arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--film", help="Le film à rechercher")
+    parser.add_argument(
+        "-s",
+        "--save",
+        action="store_true",
+        help="Sauvegarde le résultat dans un fichier",
+    )
+    return parser.parse_args()
 
 
 def affichage_initial(need_save=None):
@@ -92,33 +108,38 @@ def get_data(method, url, payload=None, params=None):
 
 
 def get_movie_url(config: dict, film_input: str):
+    # Trim des espaces en début et fin de chaîne
+    film_input = film_input.strip()
     # Boucle sur chaque site présent dans le fichier liste.cfg
     for idx, key in enumerate(config, start=1):
         # Vide le dictionnaire de résultat
         result_from_search.clear()
         html_response_film_searched = ""
-        config_array = config[key].split(",")
+        # Création de l'objet Site
+        site = Site(config[key])
         # Récupération de la méthode HTTP et de l'URL
-        method, url = config_array[0], config_array[1]
+        method, url = site.method_http_recherche, site.url_recherche
         # Récupération des résultats de recherche
         if method == "POST":
-            payload = {config_array[2]: film_input}
+            payload = {site.param_recherche: film_input}
             html_response_film_searched = get_data(method, url, payload)
         else:
-            params = {config_array[2]: film_input}
+            params = {site.param_recherche: film_input}
             html_response_film_searched = get_data(method, url, params=params)
         # On récupère la div contenant les div des résultats
-        params_find = config_array[3].split(":")
+        params_find = site.element_dom_ensemble_resultat_recherche.split(":")
         list_films = html_response_film_searched.find(
             params_find[0], {params_find[1]: params_find[2]}
         )
-        if config_array[4].split(":")[1] == "id":
+        if site.element_dom_resultat_recherche.split(":")[1] == "id":
             list_films = list_films.find_all(
-                config_array[4].split(":")[0], id=config_array[4].split(":")[2]
+                site.element_dom_resultat_recherche.split(":")[0],
+                id=site.element_dom_resultat_recherche.split(":")[2],
             )
         else:
             list_films = list_films.find_all(
-                config_array[4].split(":")[0], class_=config_array[4].split(":")[2]
+                site.element_dom_resultat_recherche.split(":")[0],
+                class_=site.element_dom_resultat_recherche.split(":")[2],
             )
         print("--------", idx, "/", len(config), key.upper(), "--------")
         # Si plusieurs films sont trouvés, on demande à l'utilisateur de choisir
@@ -156,8 +177,8 @@ def get_movie_url(config: dict, film_input: str):
                 print(list_films[0].a.text.strip())
                 film_choice = list_films[0].a.get("href")
         # Si le lien ne possède pas l'url de base, on l'ajoute
-        if config_array[5] != "":
-            html_response_film_selected = get_data("GET", config_array[5] + film_choice)
+        if site.url_base != "":
+            html_response_film_selected = get_data("GET", site.url_base + film_choice)
         else:
             html_response_film_selected = get_data("GET", film_choice)
         html_response_iframe = ""
@@ -165,17 +186,17 @@ def get_movie_url(config: dict, film_input: str):
         if html_response_film_selected.find("iframe"):
             html_response_iframe = get_data(
                 "GET",
-                html_response_film_selected.find_all("iframe")[
-                    int(config_array[6]) - 1
-                ].get("src"),
+                html_response_film_selected.find_all("iframe")[site.nb_iframe - 1].get(
+                    "src"
+                ),
             )
         # S'il faut réaliser un click pour afficher le film, on le fait
-        if config_array[7] == "true":
+        if site.necessite_click:
             on_click = html_response_iframe.find("body").get("onclick")
             final_result[key] = re.findall(r"\'.*\'", on_click)[0]
         else:
             final_result[key] = html_response_film_selected.find_all("iframe")[
-                int(config_array[6]) - 1
+                site.nb_iframe - 1
             ].get("src")
 
 
@@ -192,13 +213,7 @@ def save_result(file_name: str, film: str):
 
 
 # Début du script principal --------------------------------------------------- #
-# Récupération des paramètres CLI
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--film", help="Le film à rechercher")
-parser.add_argument(
-    "-s", "--save", action="store_true", help="Sauvegarde le résultat dans un fichier"
-)
-args = parser.parse_args()
+args = get_argument()
 # Si aucun paramètre n'est passé, on lance l'application en mode interactif
 if args.film is None:
     if args.save is None:

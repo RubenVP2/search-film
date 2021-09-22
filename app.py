@@ -4,15 +4,17 @@ import argparse
 import re
 import os
 from bs4 import BeautifulSoup
+from rich import print
+from rich.table import Table
+from rich.console import Console
+from time import sleep
 
 # Variables utilisées dans le programme
 cfg_file = "liste.cfg"
 result_from_search = {}
 final_result = {}
 film_input = ""
-
-# Lambda pour nettoie la console
-clearConsole = lambda: os.system("cls" if os.name in ("nt", "dos") else "clear")
+console = Console()
 
 
 def get_argument():
@@ -36,44 +38,93 @@ def affichage_initial(need_save=None):
     tant qu'il n'a pas saisi un nom valide (pas de chiffres, pas de caractères spéciaux, etc.)
     """
     while True:
-        film_input = input("Saisissez le nom du film à rechercher : ")
+        film_input = console.input(
+            "[bold green]Saisissez le nom du film à rechercher : "
+        )
         if film_input.isdigit() or len(film_input) < 3:
-            print("Le nom du film doit être composé de 3 caractères minimum.")
+            console.print(
+                "[bold red]Le nom du film doit être composé de 3 caractères minimum."
+            )
+            continue
         else:
             # Lecture du fichier de configuration
             config = read_cfg_file(cfg_file)
             get_movie_url(config=config, film_input=film_input)
+            affichage_final()
             break
     if need_save is not None:
         save_result(file_name="results.txt", film=film_input)
-        affichage_final()
-    else:
-        affichage_final()
 
 
 def affichage_final():
     # Affichage des résultats finaux
-    clearConsole()
-    print("---------- RESULTATS ----------")
+    console.clear()
     # Si aucun film n'a été trouvé on demande à l'utilisateur s'il veut rechercher un autre film
     if len(final_result) == 0:
-        print("Aucun résultat n'a été trouvé.")
-        print("Voulez-vous saisir un autre film ? (O/N)")
-        answer = input()
-        switch = {"o": True, "O": True, "n": False, "N": False}
-        if answer in switch:
-            if switch[answer]:
-                affichage_initial()
+        console.print("[bold red]Aucun résultat n'a été trouvé...[/] :disappointed:")
+        answer = console.input(
+            "[bold green]Voulez-vous saisir un autre film ? (O/N) :relieved:"
+        )
+        while True:
+            switch = {"o": True, "O": True, "n": False, "N": False}
+            if answer in switch:
+                if switch[answer]:
+                    console.clear()
+                    # Si l'argument save est présent, on l'utilise pour sauvegarder le résultat
+                    if args.save is not None:
+                        affichage_initial(need_save=True)
+                    else:
+                        affichage_initial()
+                    break
+                else:
+                    console.print("[bold green]Au revoir ![/] :wave:")
+                    sleep(0.5)
+                    exit()
             else:
-                exit()
-        else:
-            print("Veuillez saisir O ou N.")
+                # On demande à l'utilisateur de saisir une réponse valide
+                console.print("[bold cyan]Veuillez saisir O ou N.")
+                answer = console.input("[bold green]Nouvelle chance ! :smile:")
+                continue
     else:
+        table_results = Table(
+            title="[not italic]:page_with_curl:[/] Résultats [not italic]:page_with_curl:[/]",
+            show_lines=True,
+        )
+        table_results.add_column("Site", justify="right", style="cyan", no_wrap=True)
+        table_results.add_column("Lien", justify="left", style="magenta")
         # Affichage des liens de tous les films trouvés
         for key in final_result:
-            print(key.upper(), ">", final_result[key])
-            print("-------------------------------")
+            table_results.add_row(key.upper(), final_result[key], style=" magenta")
+        console.print(table_results)
         exit()
+
+
+def init_console_status():
+    """
+    Initialise la console avec le status recherche en cours ....
+    """
+    with console.status("[bold green]Recherche en cours...") as status:
+        # Si aucun paramètre n'est passé, on lance l'application en mode interactif
+        if args.film is None:
+            if args.save is None:
+                affichage_initial()
+            else:
+                affichage_initial(need_save=True)
+        else:
+            # On lance le script en fonction du paramètre passé
+            config = read_cfg_file(cfg_file)
+            get_movie_url(config=config, film_input=args.film)
+            if args.save is not None:
+                save_result(file_name="results.txt", film=args.film)
+        # Une fois le script terminé, on change le status de la console
+        status.update(
+            status="[bold cyan] Récupération des liens",
+            spinner="point",
+            spinner_style="cyan",
+        )
+        sleep(1.5)
+    affichage_final()
+    exit()
 
 
 def read_cfg_file(file):
@@ -141,14 +192,16 @@ def get_movie_url(config: dict, film_input: str):
                 site.element_dom_resultat_recherche.split(":")[0],
                 class_=site.element_dom_resultat_recherche.split(":")[2],
             )
-        print("--------", idx, "/", len(config), key.upper(), "--------")
+        console.print(
+            f"[bold magenta]-------- {idx} / {len(config)} {key.upper()} --------"
+        )
         # Si plusieurs films sont trouvés, on demande à l'utilisateur de choisir
         if len(list_films) > 1:
-            print("Plusieurs films trouvés")
+            console.print("[bold cyan] Plusieurs films trouvés :grinning: :")
             # Boucle sur les films trouvés pour que l'utilisateur choisisse
             for index, div in enumerate(list_films, start=1):
                 result_from_search[div.a.text.strip()] = div.a.get("href")
-                print(index, " - ", div.a.text.strip())
+                console.print(f"[bold magenta]{index} - {div.a.text.strip()}")
             film_choice = ""
             while True:
                 """
@@ -157,24 +210,26 @@ def get_movie_url(config: dict, film_input: str):
                 un nombre valide entre 1 et le nombre de films trouvés
                 """
                 try:
-                    choice = int(input("Quel fim choisis-tu ? : "))
+                    choice = int(
+                        console.input("[bold green]Quel fim choisis-tu ? :eyes: : ")
+                    )
                     if choice > len(list_films) or choice < 1:
-                        print("Ce film n'existe pas")
+                        console.print("[bold red]Ce film n'existe pas")
                         continue
                     else:
+                        console.print(":ok_hand:")
                         film_choice = list_films[choice - 1].a.get("href")
                         break
                 except ValueError:
-                    print("Ce film n'existe pas")
+                    console.print("[bold red]Ce film n'existe pas")
                     continue
         else:
             # Test si au moins un film est trouvé
             if len(list_films) == 0:
-                print("Aucun film trouvé")
                 break
             else:
-                print("Un seul film trouvé")
-                print(list_films[0].a.text.strip())
+                console.print("[bold cyan]Film trouvé :ok_hand:")
+                console.print(list_films[0].a.text.strip(), style="italic cyan")
                 film_choice = list_films[0].a.get("href")
         # Si le lien ne possède pas l'url de base, on l'ajoute
         if site.url_base != "":
@@ -193,7 +248,7 @@ def get_movie_url(config: dict, film_input: str):
         # S'il faut réaliser un click pour afficher le film, on le fait
         if site.necessite_click:
             on_click = html_response_iframe.find("body").get("onclick")
-            final_result[key] = re.findall(r"\'.*\'", on_click)[0]
+            final_result[key] = re.findall(r"\'.*\'", on_click)[0].replace("'", "")
         else:
             final_result[key] = html_response_film_selected.find_all("iframe")[
                 site.nb_iframe - 1
@@ -214,17 +269,5 @@ def save_result(file_name: str, film: str):
 
 # Début du script principal --------------------------------------------------- #
 args = get_argument()
-# Si aucun paramètre n'est passé, on lance l'application en mode interactif
-if args.film is None:
-    if args.save is None:
-        affichage_initial()
-    else:
-        affichage_initial(need_save=True)
-else:
-    # On lance le script en fonction du paramètre passé
-    config = read_cfg_file(cfg_file)
-    get_movie_url(config=config, film_input=args.film)
-    if args.save is not None:
-        save_result(file_name="results.txt", film=args.film)
-        affichage_final()
-    exit()
+console.clear()
+init_console_status()

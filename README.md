@@ -1,7 +1,10 @@
+![Demo GIF](./assets/demo.gif)
 # Search film
-Programme qui retourne les liens pour visualier un film préalablement recherché.
+C'est un programme qui retourne des liens pour visualier un film préalablement recherché.
 ## En quoi est-il utile ? 
-Il permet de gagner du temps de recherche pour visualiser un film, et évite les pubs ou autre parasite sur les sites de streaming.
+Sa recherche est très simple, il suffit de taper le nom du film que vous voulez visualiser, et le programme retourne les liens pour visualiser le film. :mag:  
+Ces liens proviennent de différents sites de streaming, cela permet d'avoir un accès à toutes les qualités disponibles. :sparkles:  
+De plus il permet de visualiser un film en ligne sans avoir à passer par un site de streaming. :eyes:  
 
 ## Comment utiliser le script ?
 Il faut au préalable python de préférence la version 3 d'installé.  

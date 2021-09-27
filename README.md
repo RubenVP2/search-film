@@ -7,7 +7,7 @@ Ces liens proviennent de différents sites de streaming, cela permet d'avoir un 
 De plus il permet de visualiser un film en ligne sans avoir à passer par un site de streaming. :eyes:  
 
 ## Comment utiliser le script ?
-Il faut au préalable python de préférence la version 3 d'installé.  
+Il faut au préalable python version 3.9.x d'installé.  
 1) La première étape consiste à installer les librairies nécessaires à sont éxécution.  
 `pip install -r requirements.txt`  
 

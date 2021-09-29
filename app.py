@@ -171,7 +171,7 @@ def read_cfg_file(file):
     return config
 
 
-def get_data(method, url, payload=None, params=None):
+def get_data(method, url, payload=None, params=None, headers=None):
     """
     Execute une requete HTTP et récupère le DOM HTML
     """
@@ -182,7 +182,18 @@ def get_data(method, url, payload=None, params=None):
         else:
             response = requests.get(url)
     elif method == "POST":
-        response = requests.post(url, data=payload)
+        if headers is not None:
+            session = requests.Session()
+            custom_headers = {
+                "Cache-Control": "no-cache",
+                "Cookie": "XSRF-TOKEN=eyJpdiI6Im9tc1BpNFwvTmJhOXl1NUVwTEQ3MnNnPT0iLCJ2YWx1ZSI6IlNLOXRBUTdDbDlFWmFHV1l0UXNxNlozV205UWNab0htVXI4cHpzenUxN08yRzMzeWpXeVRwYUduQWhtam1Bdm4iLCJtYWMiOiJhOGJjMGY1MjhiZDM3NDI2ZjQ2ZjE5MzIzMmM3YWNhYTk0YzIzZTRjNTczNjA0ZGE0ZGMzMjc5ZWM0ZWZlY2FlIn0%3D; laravel_session=eyJpdiI6IjJtbm9xZm02NHpBR3dUUFgxWTdHckE9PSIsInZhbHVlIjoibmgyc2pwVWRrWFVMRDVrMkFEdkZRQllEOUVZdkpmSFZ4M1dFdEVQVmdJbFc5WWtERW1CVU04RFVudjg1QVZUTCIsIm1hYyI6Ijc1MGViMmMzZGI0NjM0ZWY1MjY0NDkwOTQzMjU0MjgzNzYzZTRmMTUxNGI3MDQ2MDZhNWNkZjMxNjE4MjZhYzUifQ%3D%3D",
+            }
+            session.headers.update(custom_headers)
+            print(session.headers)
+            response = session.post(url, data=payload)
+            print(response.text)
+        else:
+            response = requests.post(url, data=payload)
     soup = BeautifulSoup(response.content, "html.parser")
     return soup
 
@@ -205,6 +216,10 @@ def get_movie_url(config: dict, film_input: str, status: console.status):
             if len(site.param_recherche.split(":")) > 1:
                 site_param = site.param_recherche.split(":")
                 payload = {site_param[1]: site_param[2], site_param[0]: film_input}
+                headers = ""
+                html_response_film_searched = get_data(
+                    method, url, payload=payload, headers=headers
+                )
             else:
                 payload = {site.param_recherche: film_input}
                 html_response_film_searched = get_data(method, url, payload)
@@ -213,7 +228,6 @@ def get_movie_url(config: dict, film_input: str, status: console.status):
             html_response_film_searched = get_data(method, url, params=params)
         # On récupère la div contenant les div des résultats
         params_find = site.element_dom_ensemble_resultat_recherche.split(":")
-        print(params_find)
         list_films = html_response_film_searched.find(
             params_find[0], {params_find[1]: params_find[2]}
         )

@@ -1,6 +1,4 @@
 requests
 bs4
 argparse
-re
-os
 rich

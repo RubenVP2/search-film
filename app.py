@@ -201,13 +201,19 @@ def get_movie_url(config: dict, film_input: str, status: console.status):
         method, url = site.method_http_recherche, site.url_recherche
         # Récupération des résultats de recherche
         if method == "POST":
-            payload = {site.param_recherche: film_input}
-            html_response_film_searched = get_data(method, url, payload)
+            # Si plusieurs paramètres sont présents dans le fichier de configuration c'est un site qui utilise des tokens
+            if len(site.param_recherche.split(":")) > 1:
+                site_param = site.param_recherche.split(":")
+                payload = {site_param[1]: site_param[2], site_param[0]: film_input}
+            else:
+                payload = {site.param_recherche: film_input}
+                html_response_film_searched = get_data(method, url, payload)
         else:
             params = {site.param_recherche: film_input}
             html_response_film_searched = get_data(method, url, params=params)
         # On récupère la div contenant les div des résultats
         params_find = site.element_dom_ensemble_resultat_recherche.split(":")
+        print(params_find)
         list_films = html_response_film_searched.find(
             params_find[0], {params_find[1]: params_find[2]}
         )
@@ -270,6 +276,18 @@ def get_movie_url(config: dict, film_input: str, status: console.status):
         else:
             html_response_film_selected = get_data("GET", film_choice)
         html_response_iframe = ""
+        if site.nb_iframe == 0:
+            # Si le site n'a pas de iframe, c'est qu'il faut construire l'url pour celui-ci
+            html_response_iframe = html_response_film_selected.find_all("li").has_attr(
+                "data-url"
+            )
+            # Regex pour récupérer tous les liens étant dans l'attribut data-url
+            list_link = re.findall(r"data-url=\"(.*?)\"", html_response_iframe)
+            if site.url_base_iframe != "":
+                # Si le site a une url de base pour les iframes, on l'ajoute
+                final_result[key] = [
+                    site.url_base_iframe + "?hash=" + link + "\n" for link in list_link
+                ]
         # S'il y a une utilisation d'iframe, on doit récupérer le contenu de l'iframe
         if html_response_film_selected.find("iframe"):
             html_response_iframe = get_data(

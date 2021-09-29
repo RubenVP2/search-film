@@ -12,6 +12,7 @@ class Site:
     element_dom_resultat_recherche: str
     url_base: str
     nb_iframe: int
+    url_base_iframe: str
     necessite_click: bool
 
     # Constructor de la classe
@@ -26,7 +27,8 @@ class Site:
         self.element_dom_resultat_recherche = vars_array[4]
         self.url_base = vars_array[5]
         self.nb_iframe = int(vars_array[6])
-        self.necessite_click = self.convert_to_bool(vars_array[7])
+        self.url_base_iframe = vars_array[7]
+        self.necessite_click = self.convert_to_bool(vars_array[8])
 
     def print_site(self):
         """
@@ -43,6 +45,7 @@ class Site:
         print("Element DOM resultat : " + self.element_dom_resultat_recherche)
         print("URL Base : " + self.url_base)
         print("Nombre d'iframe : " + str(self.nb_iframe))
+        print("URL Base iframe : " + self.url_base_iframe)
         print("Necessite Click : " + str(self.necessite_click))
         print("\n\n")
 

@@ -185,11 +185,14 @@ def get_data(method, url, payload=None, params=None, headers=None):
         if headers is not None:
             session = requests.Session()
             custom_headers = {
-                "Cache-Control": "no-cache",
-                "Cookie": "XSRF-TOKEN=eyJpdiI6Im9tc1BpNFwvTmJhOXl1NUVwTEQ3MnNnPT0iLCJ2YWx1ZSI6IlNLOXRBUTdDbDlFWmFHV1l0UXNxNlozV205UWNab0htVXI4cHpzenUxN08yRzMzeWpXeVRwYUduQWhtam1Bdm4iLCJtYWMiOiJhOGJjMGY1MjhiZDM3NDI2ZjQ2ZjE5MzIzMmM3YWNhYTk0YzIzZTRjNTczNjA0ZGE0ZGMzMjc5ZWM0ZWZlY2FlIn0%3D; laravel_session=eyJpdiI6IjJtbm9xZm02NHpBR3dUUFgxWTdHckE9PSIsInZhbHVlIjoibmgyc2pwVWRrWFVMRDVrMkFEdkZRQllEOUVZdkpmSFZ4M1dFdEVQVmdJbFc5WWtERW1CVU04RFVudjg1QVZUTCIsIm1hYyI6Ijc1MGViMmMzZGI0NjM0ZWY1MjY0NDkwOTQzMjU0MjgzNzYzZTRmMTUxNGI3MDQ2MDZhNWNkZjMxNjE4MjZhYzUifQ%3D%3D",
+                "Host": "filmstreaming2.com",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": "68",
+                "Cookie": "XSRF-TOKEN=eyJpdiI6Im9tc1BpNFwvTmJhOXl1NUVwTEQ3MnNnPT0iLCJ2YWx1ZSI6IlNLOXRBUTdDbDlFWmFHV1l0UXNxNlozV205UWNab0htVXI4cHpzenUxN08yRzMzeWpXeVRwYUduQWhtam1Bdm4iLCJtYWMiOiJhOGJjMGY1MjhiZDM3NDI2ZjQ2ZjE5MzIzMmM3YWNhYTk0YzIzZTRjNTczNjA0ZGE0ZGMzMjc5ZWM0ZWZlY2FlIn0%3D;laravel_session=eyJpdiI6IjJtbm9xZm02NHpBR3dUUFgxWTdHckE9PSIsInZhbHVlIjoibmgyc2pwVWRrWFVMRDVrMkFEdkZRQllEOUVZdkpmSFZ4M1dFdEVQVmdJbFc5WWtERW1CVU04RFVudjg1QVZUTCIsIm1hYyI6Ijc1MGViMmMzZGI0NjM0ZWY1MjY0NDkwOTQzMjU0MjgzNzYzZTRmMTUxNGI3MDQ2MDZhNWNkZjMxNjE4MjZhYzUifQ%3D%3D",
             }
             session.headers.update(custom_headers)
-            print(session.headers)
+            print(session.headers.items())
+
             response = session.post(url, data=payload)
             print(response.text)
         else:
